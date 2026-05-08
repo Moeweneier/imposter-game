@@ -894,7 +894,10 @@
             syncCurrentPlayer();
             renderAnswerState();
 
-            if (allPlayers.length > 0 && allPlayers.every(player => player.ready_for_next_round)) {
+            const allSubmitted = allPlayers.length > 0 && allPlayers.every(player => player.has_submitted);
+            const allReady = allPlayers.length > 0 && allPlayers.every(player => player.ready_for_next_round);
+
+            if (currentGame.status === "answering" && allSubmitted && allReady) {
                 await startNextRoundIfNeeded();
             }
         }
@@ -919,6 +922,14 @@
             const allReady = readyCount === totalCount;
             const waitingStatus = document.getElementById("waitingStatus");
             const readyStatus = document.getElementById("readyStatus");
+            if (currentGame.status === "transitioning") {
+                document.getElementById("playerResult").classList.add("hidden");
+                document.getElementById("revealArea").classList.add("hidden");
+                document.getElementById("answersArea").classList.add("hidden");
+                document.getElementById("betweenRoundsArea").classList.remove("hidden");
+                document.getElementById("betweenRoundsStatus").innerText = "Nächste Frage wird vorbereitet...";
+                return;
+            }
 
             waitingStatus.classList.remove("hidden", "success");
 
@@ -1035,25 +1046,10 @@
             const nextImposterIndex = Math.floor(Math.random() * allPlayers.length);
             const nextImposterPlayer = allPlayers[nextImposterIndex];
 
-            const { error: gameError } = await supabaseClient
+            await supabaseClient
                 .from("games")
-                .update({
-                    status: "answering",
-                    normal_question: nextPair.normal,
-                    imposter_question: nextPair.imposter,
-                    current_question_index: nextQuestionIndex,
-                    used_question_indexes: [...usedIndexes, nextQuestionIndex],
-                    round_number: (currentGame.round_number || 1) + 1,
-                    imposter_player_id: nextImposterPlayer.id
-                })
-                .eq("id", currentGame.id)
-                .eq("current_question_index", currentGame.current_question_index);
-
-            if (gameError) {
-                console.error(gameError);
-                isStartingNextRound = false;
-                return;
-            }
+                .update({ status: "transitioning" })
+                .eq("id", currentGame.id);
 
             for (const player of allPlayers) {
                 await supabaseClient
@@ -1066,6 +1062,32 @@
                     })
                     .eq("id", player.id);
             }
+
+            const { data: updatedGame, error } = await supabaseClient
+                .from("games")
+                .update({
+                    status: "answering",
+                    normal_question: nextPair.normal,
+                    imposter_question: nextPair.imposter,
+                    current_question_index: nextQuestionIndex,
+                    used_question_indexes: [...usedIndexes, nextQuestionIndex],
+                    round_number: (currentGame.round_number || 1) + 1,
+                    imposter_player_id: nextImposterPlayer.id
+                })
+                .eq("id", currentGame.id)
+                .select()
+                .single();
+
+            if (error) {
+                console.error(error);
+                isStartingNextRound = false;
+                return;
+            }
+
+            currentGame = updatedGame;
+            allPlayers = await loadPlayers(currentGame.id);
+            syncCurrentPlayer();
+            renderNewRound();
         }
 
         function renderGameFinished() {
