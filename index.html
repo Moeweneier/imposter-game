@@ -3,20 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Imposter Game</title>
+    <title>Imposter</title>
+
+    <script src="questions.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
 
     <style>
+        :root {
+            --background: #0f0f11;
+            --surface: #1b1b1f;
+            --surface-light: #27272d;
+            --surface-lighter: #34343b;
+            --text: #f4f4f5;
+            --muted: #a1a1aa;
+            --accent: #f59e0b;
+            --accent-dark: #d97706;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --border: #33333a;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
         body {
-            background: #111;
-            color: white;
             min-height: 100vh;
+            background: radial-gradient(circle at top, #202026 0%, var(--background) 55%);
+            color: var(--text);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -25,100 +43,109 @@
 
         .container {
             width: 100%;
-            max-width: 650px;
-            background: #1e1e1e;
-            border-radius: 24px;
-            padding: 32px;
-            box-shadow: 0 0 30px rgba(0,0,0,0.4);
+            max-width: 760px;
+            background: rgba(27, 27, 31, 0.96);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 34px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
         }
 
         h1 {
-            font-size: 42px;
-            margin-bottom: 12px;
-            text-align: center;
+            font-size: clamp(42px, 8vw, 66px);
+            line-height: 1;
+            letter-spacing: -0.06em;
+            margin-bottom: 14px;
         }
 
         h2 {
-            margin-bottom: 16px;
+            font-size: 24px;
+            letter-spacing: -0.03em;
+            margin-bottom: 12px;
             text-align: center;
         }
 
         p {
+            color: var(--muted);
+            line-height: 1.5;
             text-align: center;
-            color: #bbb;
-            margin-bottom: 24px;
-            line-height: 1.4;
         }
 
-        input {
+        .section-description {
+            margin-bottom: 24px;
+        }
+
+        input, textarea {
             width: 100%;
-            padding: 16px;
-            border-radius: 12px;
-            border: none;
-            margin-bottom: 16px;
+            padding: 16px 18px;
+            border-radius: 14px;
+            border: 1px solid transparent;
+            margin-bottom: 14px;
             font-size: 16px;
-            background: #2a2a2a;
-            color: white;
+            background: var(--surface-light);
+            color: var(--text);
+            outline: none;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        input:focus, textarea:focus {
+            border-color: var(--accent);
         }
 
         button {
             width: 100%;
-            padding: 16px;
+            padding: 16px 18px;
             border: none;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: bold;
+            border-radius: 14px;
+            font-size: 17px;
+            font-weight: 700;
             cursor: pointer;
-            background: orange;
-            color: black;
-            transition: 0.2s;
+            background: var(--accent);
+            color: #111;
+            transition: transform 0.18s ease, background 0.18s ease;
             margin-bottom: 12px;
         }
 
         button:hover {
-            transform: scale(1.02);
+            transform: translateY(-1px);
+            background: var(--accent-dark);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+            transform: none;
         }
 
         .secondary-button {
-            background: #333;
-            color: white;
+            background: var(--surface-lighter);
+            color: var(--text);
+        }
+
+        .secondary-button:hover {
+            background: #3e3e47;
         }
 
         .danger-button {
-            background: #ff4d4d;
+            background: var(--danger);
             color: white;
         }
 
-        .player-list {
-            margin-top: 16px;
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .player {
-            background: #2a2a2a;
-            padding: 14px;
-            border-radius: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .player span {
-            overflow-wrap: anywhere;
-        }
-
-        .remove-player {
-            width: auto;
-            margin: 0;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            background: #444;
-            color: white;
+        .danger-button:hover {
+            background: #dc2626;
         }
 
         .hidden {
@@ -126,195 +153,236 @@
         }
 
         .card {
-            margin-top: 24px;
-            background: #2a2a2a;
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            border-radius: 22px;
             padding: 24px;
-            border-radius: 20px;
-            text-align: center;
+            margin-top: 20px;
         }
 
-        .question {
-            font-size: 30px;
-            font-weight: bold;
-            margin-top: 16px;
-            color: orange;
+        .player-list, .answer-list {
+            margin-top: 18px;
+            margin-bottom: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .player-row, .answer-row {
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            padding: 14px;
+            border-radius: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .answer-row {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .player-row span, .answer-row strong {
+            overflow-wrap: anywhere;
+            font-weight: 700;
+        }
+
+        .answer-row p {
+            text-align: left;
+            color: var(--text);
             overflow-wrap: anywhere;
         }
 
-        .role {
-            font-size: 22px;
-            font-weight: bold;
-            margin-bottom: 12px;
-        }
-
-        .role.imposter {
-            color: #ff4d4d;
-        }
-
-        .role.normal {
-            color: #5dff8b;
-        }
-
-        .small-text {
-            font-size: 14px;
-            color: #999;
-            margin-top: 12px;
-            margin-bottom: 0;
+        .remove-player {
+            width: auto;
+            margin: 0;
+            padding: 9px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            background: var(--surface-lighter);
+            color: var(--text);
         }
 
         .link-box {
             width: 100%;
             padding: 14px;
-            border-radius: 12px;
-            background: #111;
-            color: orange;
+            border-radius: 14px;
+            background: #111114;
+            color: var(--accent);
             font-size: 14px;
             overflow-wrap: anywhere;
-            margin-bottom: 16px;
+            margin: 16px 0;
             text-align: left;
+            border: 1px solid var(--border);
         }
 
-        .divider {
-            height: 1px;
-            width: 100%;
-            background: #333;
-            margin: 24px 0;
+        .role {
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .role.imposter {
+            color: var(--danger);
+        }
+
+        .role.normal {
+            color: var(--success);
+        }
+
+        .question-label {
+            color: var(--muted);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .question {
+            font-size: clamp(28px, 8vw, 48px);
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            text-align: center;
+            color: var(--accent);
+            overflow-wrap: anywhere;
+            margin-bottom: 20px;
+        }
+
+        .small-text {
+            font-size: 14px;
+            color: var(--muted);
+            margin-top: 12px;
+            margin-bottom: 0;
+        }
+
+        .status-box {
+            margin-top: 18px;
+            padding: 14px;
+            border-radius: 14px;
+            background: #111114;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .status-box.success {
+            color: var(--success);
+        }
+
+        .footer-actions {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 520px) {
+            body {
+                padding: 14px;
+                align-items: stretch;
+            }
+
+            .container {
+                padding: 24px;
+                border-radius: 24px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🕵️ Imposter</h1>
-        <p>Der Host erstellt das Spiel. Alle anderen öffnen den Link, geben ihren Namen ein und sehen nur ihre eigene Frage.</p>
+    <main class="container">
+        <section class="header">
+            <h1>Imposter</h1>
+            <p>Der Host erstellt ein Spiel, teilt den Link und jeder Spieler sieht nur seine eigene Rolle und Frage.</p>
+        </section>
 
-        <div id="modeSelection">
-            <button onclick="showPlayerView()">Ich bin Spieler</button>
-            <button class="secondary-button" onclick="showHostLogin()">Ich bin Host</button>
-        </div>
+        <section id="hostView">
+            <h2>Spiel erstellen</h2>
+            <p class="section-description">Trage alle Spieler ein. Danach wird ein Live-Spiel in Supabase erstellt.</p>
 
-        <div id="hostLogin" class="hidden">
-            <h2>Host Login</h2>
-            <input id="hostPasswordInput" type="password" placeholder="Host-Passwort">
-            <button onclick="loginHost()">Als Host einloggen</button>
-            <button class="secondary-button" onclick="showModeSelection()">Zurück</button>
-            <p class="small-text">Test-Passwort: <strong>host123</strong></p>
-        </div>
-
-        <div id="hostView" class="hidden">
-            <h2>Host Bereich</h2>
-            <p>Lege fest, welche Spieler mitmachen. Danach erzeugst du einen Link für alle.</p>
-
-            <input id="hostPlayerInput" type="text" placeholder="Spielername eingeben">
+            <input id="hostPlayerInput" type="text" placeholder="Spielername" autocomplete="off">
             <button onclick="addHostPlayer()">Spieler hinzufügen</button>
 
             <div class="player-list" id="hostPlayerList"></div>
 
-            <button onclick="createGameLink()">Spiel erstellen</button>
+            <button id="createGameButton" onclick="createGame()">Spiel-Link erstellen</button>
             <button class="danger-button" onclick="resetHostGame()">Spiel zurücksetzen</button>
 
             <div id="shareArea" class="card hidden">
-                <h2>Spiel-Link</h2>
-                <p>Schick diesen Link an alle Spieler:</p>
+                <h2>Spiel ist bereit</h2>
+                <p>Schick diesen Link an alle Spieler. Jeder gibt danach seinen eigenen Namen ein.</p>
                 <div class="link-box" id="shareLink"></div>
                 <button onclick="copyGameLink()">Link kopieren</button>
             </div>
-        </div>
+        </section>
 
-        <div id="playerView" class="hidden">
-            <h2>Spieler Bereich</h2>
-            <p>Gib exakt den Namen ein, den der Host eingetragen hat.</p>
+        <section id="playerView" class="hidden">
+            <h2>Deine Karte</h2>
+            <p class="section-description">Gib exakt den Namen ein, den der Host für dich eingetragen hat.</p>
 
-            <input id="playerNameInput" type="text" placeholder="Dein Spielername">
-            <button onclick="showMyQuestion()">Meine Frage anzeigen</button>
-            <button class="secondary-button" onclick="showModeSelection()">Zurück</button>
+            <input id="playerNameInput" type="text" placeholder="Dein Spielername" autocomplete="off">
+            <button onclick="loadPlayerCard()">Karte laden</button>
 
             <div id="playerResult" class="card hidden">
                 <div id="roleText" class="role"></div>
                 <h2 id="resultPlayerName"></h2>
+                <div class="question-label">Deine Frage</div>
                 <div class="question" id="resultQuestion"></div>
-                <p class="small-text">Sag deine Antwort laut und verteidige sie. Nicht den Inhalt dieser Karte zeigen.</p>
+
+                <textarea id="answerInput" placeholder="Deine Antwort"></textarea>
+                <button id="submitAnswerButton" onclick="submitAnswer()">Antwort abgeben</button>
+
+                <div id="waitingStatus" class="status-box hidden"></div>
             </div>
-        </div>
-    </div>
+
+            <div id="answersArea" class="card hidden">
+                <h2>Antworten</h2>
+                <p class="section-description">Alle Antworten wurden abgegeben. Jetzt könnt ihr diskutieren.</p>
+                <div class="answer-list" id="answerList"></div>
+            </div>
+
+            <div class="footer-actions">
+                <button class="secondary-button" onclick="returnToHostStart()">Neues Spiel erstellen</button>
+            </div>
+        </section>
+    </main>
 
     <script>
-        const HOST_PASSWORD = "host123";
-
-        const questionPairs = [
-            {
-                normal: "Pizza",
-                imposter: "Burger"
-            },
-            {
-                normal: "Paris",
-                imposter: "London"
-            },
-            {
-                normal: "Hund",
-                imposter: "Katze"
-            },
-            {
-                normal: "Sommer",
-                imposter: "Winter"
-            },
-            {
-                normal: "Ferrari",
-                imposter: "Lamborghini"
-            },
-            {
-                normal: "Strandurlaub",
-                imposter: "Skiurlaub"
-            },
-            {
-                normal: "Netflix",
-                imposter: "YouTube"
-            },
-            {
-                normal: "Kaffee",
-                imposter: "Energy Drink"
-            }
-        ];
+        const supabaseClient = supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY
+        );
 
         const hostPlayers = [];
         let currentGameLink = "";
+        let currentGame = null;
+        let currentPlayer = null;
+        let allPlayers = [];
+        let playerSubscription = null;
 
-        function showModeSelection() {
-            hideAllSections();
-            document.getElementById("modeSelection").classList.remove("hidden");
-        }
-
-        function showHostLogin() {
-            hideAllSections();
-            document.getElementById("hostLogin").classList.remove("hidden");
-        }
-
-        function showHostView() {
-            hideAllSections();
-            document.getElementById("hostView").classList.remove("hidden");
-        }
-
-        function showPlayerView() {
-            hideAllSections();
-            document.getElementById("playerView").classList.remove("hidden");
-        }
-
-        function hideAllSections() {
-            document.getElementById("modeSelection").classList.add("hidden");
-            document.getElementById("hostLogin").classList.add("hidden");
-            document.getElementById("hostView").classList.add("hidden");
-            document.getElementById("playerView").classList.add("hidden");
-        }
-
-        function loginHost() {
-            const password = document.getElementById("hostPasswordInput").value;
-
-            if (password !== HOST_PASSWORD) {
-                alert("Falsches Host-Passwort.");
-                return;
+        function getQuestionPairs() {
+            if (!window.IMPOSTER_QUESTIONS || !Array.isArray(window.IMPOSTER_QUESTIONS)) {
+                return [];
             }
 
-            document.getElementById("hostPasswordInput").value = "";
-            showHostView();
+            return window.IMPOSTER_QUESTIONS.filter(pair => {
+                return pair && typeof pair.normal === "string" && typeof pair.imposter === "string";
+            });
+        }
+
+        function createRoomCode() {
+            const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            let code = "";
+
+            for (let i = 0; i < 6; i++) {
+                code += letters[Math.floor(Math.random() * letters.length)];
+            }
+
+            return code;
         }
 
         function addHostPlayer() {
@@ -345,58 +413,107 @@
             list.innerHTML = "";
 
             if (hostPlayers.length === 0) {
-                const emptyText = document.createElement("p");
-                emptyText.className = "small-text";
+                const emptyText = document.createElement("div");
+                emptyText.className = "status-box";
                 emptyText.innerText = "Noch keine Spieler hinzugefügt.";
                 list.appendChild(emptyText);
                 return;
             }
 
             hostPlayers.forEach((player, index) => {
-                const div = document.createElement("div");
-                div.className = "player";
+                const row = document.createElement("div");
+                row.className = "player-row";
 
-                const span = document.createElement("span");
-                span.innerText = player;
+                const name = document.createElement("span");
+                name.innerText = player;
 
                 const removeButton = document.createElement("button");
                 removeButton.className = "remove-player";
                 removeButton.innerText = "Entfernen";
                 removeButton.onclick = () => removeHostPlayer(index);
 
-                div.appendChild(span);
-                div.appendChild(removeButton);
-                list.appendChild(div);
+                row.appendChild(name);
+                row.appendChild(removeButton);
+                list.appendChild(row);
             });
         }
 
-        function createGameLink() {
+        async function createGame() {
+            const questionPairs = getQuestionPairs();
+            const createButton = document.getElementById("createGameButton");
+
             if (hostPlayers.length < 3) {
                 alert("Mindestens 3 Spieler benötigt.");
                 return;
             }
 
+            if (questionPairs.length === 0) {
+                alert("Keine Fragen gefunden. Prüfe die Datei questions.js.");
+                return;
+            }
+
+            createButton.disabled = true;
+            createButton.innerText = "Spiel wird erstellt...";
+
             const pair = questionPairs[Math.floor(Math.random() * questionPairs.length)];
             const imposterIndex = Math.floor(Math.random() * hostPlayers.length);
+            const roomCode = createRoomCode();
 
-            const assignments = hostPlayers.map((player, index) => {
+            const { data: game, error: gameError } = await supabaseClient
+                .from("games")
+                .insert({
+                    room_code: roomCode,
+                    status: "answering",
+                    normal_question: pair.normal,
+                    imposter_question: pair.imposter
+                })
+                .select()
+                .single();
+
+            if (gameError) {
+                console.error(gameError);
+                alert("Spiel konnte nicht erstellt werden.");
+                createButton.disabled = false;
+                createButton.innerText = "Spiel-Link erstellen";
+                return;
+            }
+
+            const playersToInsert = hostPlayers.map((player, index) => {
                 return {
+                    game_id: game.id,
                     name: player,
-                    question: index === imposterIndex ? pair.imposter : pair.normal,
-                    isImposter: index === imposterIndex
+                    is_imposter: index === imposterIndex
                 };
             });
 
-            const gameData = {
-                createdAt: Date.now(),
-                assignments: assignments
-            };
+            const { data: insertedPlayers, error: playersError } = await supabaseClient
+                .from("players")
+                .insert(playersToInsert)
+                .select();
 
-            const encodedGameData = btoa(unescape(encodeURIComponent(JSON.stringify(gameData))));
-            currentGameLink = `${window.location.origin}${window.location.pathname}#game=${encodedGameData}`;
+            if (playersError) {
+                console.error(playersError);
+                alert("Spieler konnten nicht erstellt werden.");
+                createButton.disabled = false;
+                createButton.innerText = "Spiel-Link erstellen";
+                return;
+            }
 
+            const imposterPlayer = insertedPlayers.find(player => player.is_imposter);
+
+            if (imposterPlayer) {
+                await supabaseClient
+                    .from("games")
+                    .update({ imposter_player_id: imposterPlayer.id })
+                    .eq("id", game.id);
+            }
+
+            currentGameLink = `${window.location.origin}${window.location.pathname}#room=${roomCode}`;
             document.getElementById("shareLink").innerText = currentGameLink;
             document.getElementById("shareArea").classList.remove("hidden");
+
+            createButton.disabled = false;
+            createButton.innerText = "Neues Spiel-Link erstellen";
         }
 
         function copyGameLink() {
@@ -412,66 +529,243 @@
         function resetHostGame() {
             hostPlayers.length = 0;
             currentGameLink = "";
+            document.getElementById("hostPlayerInput").value = "";
             document.getElementById("shareLink").innerText = "";
             document.getElementById("shareArea").classList.add("hidden");
+            document.getElementById("createGameButton").innerText = "Spiel-Link erstellen";
             renderHostPlayers();
         }
 
-        function getGameDataFromUrl() {
+        function getRoomCodeFromUrl() {
             const hash = window.location.hash;
 
-            if (!hash.startsWith("#game=")) {
+            if (!hash.startsWith("#room=")) {
                 return null;
             }
 
-            const encodedGameData = hash.replace("#game=", "");
-
-            try {
-                return JSON.parse(decodeURIComponent(escape(atob(encodedGameData))));
-            } catch (error) {
-                return null;
-            }
+            return hash.replace("#room=", "").trim().toUpperCase();
         }
 
-        function showMyQuestion() {
-            const gameData = getGameDataFromUrl();
+        async function loadGameByRoomCode(roomCode) {
+            const { data: game, error } = await supabaseClient
+                .from("games")
+                .select("*")
+                .eq("room_code", roomCode)
+                .single();
 
-            if (!gameData) {
-                alert("Kein Spiel gefunden. Öffne den Link, den der Host erstellt hat.");
+            if (error) {
+                console.error(error);
+                return null;
+            }
+
+            return game;
+        }
+
+        async function loadPlayers(gameId) {
+            const { data: players, error } = await supabaseClient
+                .from("players")
+                .select("*")
+                .eq("game_id", gameId)
+                .order("created_at", { ascending: true });
+
+            if (error) {
+                console.error(error);
+                return [];
+            }
+
+            return players;
+        }
+
+        async function loadPlayerCard() {
+            const roomCode = getRoomCodeFromUrl();
+            const name = document.getElementById("playerNameInput").value.trim();
+
+            if (!roomCode) {
+                alert("Kein Raum gefunden. Öffne den Link, den der Host erstellt hat.");
                 return;
             }
 
-            const name = document.getElementById("playerNameInput").value.trim();
-
             if (!name) return;
 
-            const assignment = gameData.assignments.find(player => player.name.toLowerCase() === name.toLowerCase());
+            currentGame = await loadGameByRoomCode(roomCode);
 
-            if (!assignment) {
+            if (!currentGame) {
+                alert("Dieses Spiel wurde nicht gefunden.");
+                return;
+            }
+
+            allPlayers = await loadPlayers(currentGame.id);
+
+            currentPlayer = allPlayers.find(player => player.name.toLowerCase() === name.toLowerCase());
+
+            if (!currentPlayer) {
                 alert("Dieser Name ist nicht im Spiel. Prüfe die Schreibweise.");
                 return;
             }
 
+            renderPlayerCard();
+            renderAnswerState();
+            subscribeToPlayerUpdates(currentGame.id);
+        }
+
+        function renderPlayerCard() {
             const roleText = document.getElementById("roleText");
             roleText.classList.remove("imposter", "normal");
 
-            if (assignment.isImposter) {
-                roleText.innerText = "Du bist der Imposter";
+            if (currentPlayer.is_imposter) {
+                roleText.innerText = "Imposter";
                 roleText.classList.add("imposter");
+                document.getElementById("resultQuestion").innerText = currentGame.imposter_question;
             } else {
-                roleText.innerText = "Du bist kein Imposter";
+                roleText.innerText = "Crew";
                 roleText.classList.add("normal");
+                document.getElementById("resultQuestion").innerText = currentGame.normal_question;
             }
 
-            document.getElementById("resultPlayerName").innerText = assignment.name;
-            document.getElementById("resultQuestion").innerText = assignment.question;
+            document.getElementById("resultPlayerName").innerText = currentPlayer.name;
+            document.getElementById("answerInput").value = currentPlayer.answer || "";
+            document.getElementById("submitAnswerButton").disabled = currentPlayer.has_submitted;
+            document.getElementById("submitAnswerButton").innerText = currentPlayer.has_submitted ? "Antwort abgegeben" : "Antwort abgeben";
             document.getElementById("playerResult").classList.remove("hidden");
         }
 
+        async function submitAnswer() {
+            const answer = document.getElementById("answerInput").value.trim();
+
+            if (!currentPlayer || !currentGame) {
+                alert("Lade zuerst deine Karte.");
+                return;
+            }
+
+            if (!answer) {
+                alert("Bitte gib zuerst eine Antwort ein.");
+                return;
+            }
+
+            const { data, error } = await supabaseClient
+                .from("players")
+                .update({
+                    answer: answer,
+                    has_submitted: true
+                })
+                .eq("id", currentPlayer.id)
+                .select()
+                .single();
+
+            if (error) {
+                console.error(error);
+                alert("Antwort konnte nicht gespeichert werden.");
+                return;
+            }
+
+            currentPlayer = data;
+            document.getElementById("submitAnswerButton").disabled = true;
+            document.getElementById("submitAnswerButton").innerText = "Antwort abgegeben";
+        }
+
+        function subscribeToPlayerUpdates(gameId) {
+            if (playerSubscription) {
+                supabaseClient.removeChannel(playerSubscription);
+            }
+
+            playerSubscription = supabaseClient
+                .channel(`players-${gameId}`)
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "*",
+                        schema: "public",
+                        table: "players",
+                        filter: `game_id=eq.${gameId}`
+                    },
+                    async () => {
+                        allPlayers = await loadPlayers(gameId);
+                        const updatedCurrentPlayer = allPlayers.find(player => player.id === currentPlayer.id);
+
+                        if (updatedCurrentPlayer) {
+                            currentPlayer = updatedCurrentPlayer;
+                        }
+
+                        renderAnswerState();
+                    }
+                )
+                .subscribe();
+        }
+
+        function renderAnswerState() {
+            if (!allPlayers || allPlayers.length === 0) return;
+
+            const submittedCount = allPlayers.filter(player => player.has_submitted).length;
+            const totalCount = allPlayers.length;
+            const allSubmitted = submittedCount === totalCount;
+            const waitingStatus = document.getElementById("waitingStatus");
+
+            waitingStatus.classList.remove("hidden", "success");
+
+            if (allSubmitted) {
+                waitingStatus.classList.add("success");
+                waitingStatus.innerText = "Alle Antworten sind abgegeben.";
+                renderAnswers();
+            } else {
+                waitingStatus.innerText = `${submittedCount} von ${totalCount} Antworten abgegeben. Warte auf die anderen Spieler.`;
+                document.getElementById("answersArea").classList.add("hidden");
+            }
+        }
+
+        function renderAnswers() {
+            const answerList = document.getElementById("answerList");
+            answerList.innerHTML = "";
+
+            allPlayers.forEach(player => {
+                const row = document.createElement("div");
+                row.className = "answer-row";
+
+                const name = document.createElement("strong");
+                name.innerText = player.name;
+
+                const answer = document.createElement("p");
+                answer.innerText = player.answer || "Keine Antwort";
+
+                row.appendChild(name);
+                row.appendChild(answer);
+                answerList.appendChild(row);
+            });
+
+            document.getElementById("answersArea").classList.remove("hidden");
+        }
+
+        function showHostView() {
+            document.getElementById("hostView").classList.remove("hidden");
+            document.getElementById("playerView").classList.add("hidden");
+        }
+
+        function showPlayerView() {
+            document.getElementById("hostView").classList.add("hidden");
+            document.getElementById("playerView").classList.remove("hidden");
+        }
+
+        function returnToHostStart() {
+            window.location.href = window.location.origin + window.location.pathname;
+        }
+
+        document.getElementById("hostPlayerInput").addEventListener("keydown", event => {
+            if (event.key === "Enter") {
+                addHostPlayer();
+            }
+        });
+
+        document.getElementById("playerNameInput").addEventListener("keydown", event => {
+            if (event.key === "Enter") {
+                loadPlayerCard();
+            }
+        });
+
         renderHostPlayers();
 
-        if (getGameDataFromUrl()) {
+        if (getRoomCodeFromUrl()) {
             showPlayerView();
+        } else {
+            showHostView();
         }
     </script>
 </body>
