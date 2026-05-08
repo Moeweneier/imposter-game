@@ -2,10 +2,231 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Imposter Game</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #111;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: #1e1e1e;
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.4);
+        }
+
+        h1 {
+            font-size: 42px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        p {
+            text-align: center;
+            color: #bbb;
+            margin-bottom: 24px;
+        }
+
+        input {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            border: none;
+            margin-bottom: 16px;
+            font-size: 16px;
+            background: #2a2a2a;
+            color: white;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            background: orange;
+            color: black;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.02);
+        }
+
+        .player-list {
+            margin-top: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .player {
+            background: #2a2a2a;
+            padding: 14px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .card {
+            margin-top: 24px;
+            background: #2a2a2a;
+            padding: 24px;
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .question {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 16px;
+            color: orange;
+        }
+    </style>
 </head>
 <body>
-    <h1>Hello World 👋</h1>
-    <p>Meine Imposter-Game-Testseite läuft.</p>
+    <div class="container">
+        <h1>🕵️ Imposter</h1>
+        <p>Alle bekommen dieselbe Frage — außer einer Person.</p>
+
+        <input id="playerInput" type="text" placeholder="Spielername eingeben">
+
+        <button onclick="addPlayer()">Spieler hinzufügen</button>
+
+        <div class="player-list" id="playerList"></div>
+
+        <div style="margin-top: 24px;">
+            <button onclick="startGame()">Spiel starten</button>
+        </div>
+
+        <div class="card hidden" id="questionCard">
+            <h2 id="playerName"></h2>
+            <div class="question" id="questionText"></div>
+
+            <div style="margin-top: 20px;">
+                <button onclick="nextPlayer()">Nächster Spieler</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const players = [];
+
+        const questionPairs = [
+            {
+                normal: "Pizza",
+                imposter: "Burger"
+            },
+            {
+                normal: "Paris",
+                imposter: "London"
+            },
+            {
+                normal: "Hund",
+                imposter: "Katze"
+            },
+            {
+                normal: "Sommer",
+                imposter: "Winter"
+            },
+            {
+                normal: "Ferrari",
+                imposter: "Lamborghini"
+            }
+        ];
+
+        let gameQuestions = [];
+        let currentPlayerIndex = 0;
+
+        function addPlayer() {
+            const input = document.getElementById("playerInput");
+            const name = input.value.trim();
+
+            if (!name) return;
+
+            players.push(name);
+            input.value = "";
+
+            renderPlayers();
+        }
+
+        function renderPlayers() {
+            const playerList = document.getElementById("playerList");
+            playerList.innerHTML = "";
+
+            players.forEach(player => {
+                const div = document.createElement("div");
+                div.className = "player";
+                div.innerText = player;
+                playerList.appendChild(div);
+            });
+        }
+
+        function startGame() {
+            if (players.length < 3) {
+                alert("Mindestens 3 Spieler benötigt.");
+                return;
+            }
+
+            const pair = questionPairs[Math.floor(Math.random() * questionPairs.length)];
+
+            const imposterIndex = Math.floor(Math.random() * players.length);
+
+            gameQuestions = players.map((player, index) => {
+                return {
+                    name: player,
+                    question: index === imposterIndex ? pair.imposter : pair.normal
+                };
+            });
+
+            currentPlayerIndex = 0;
+
+            showPlayerQuestion();
+        }
+
+        function showPlayerQuestion() {
+            const player = gameQuestions[currentPlayerIndex];
+
+            document.getElementById("questionCard").classList.remove("hidden");
+            document.getElementById("playerName").innerText = player.name;
+            document.getElementById("questionText").innerText = player.question;
+        }
+
+        function nextPlayer() {
+            currentPlayerIndex++;
+
+            if (currentPlayerIndex >= gameQuestions.length) {
+                alert("Alle Spieler haben ihre Frage gesehen. Diskussion starten 😈");
+
+                document.getElementById("questionCard").classList.add("hidden");
+                return;
+            }
+
+            showPlayerQuestion();
+        }
+    </script>
 </body>
 </html>
