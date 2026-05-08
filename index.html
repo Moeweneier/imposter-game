@@ -130,15 +130,6 @@
             transform: none;
         }
 
-        .secondary-button {
-            background: var(--surface-lighter);
-            color: var(--text);
-        }
-
-        .secondary-button:hover {
-            background: #3e3e47;
-        }
-
         .danger-button {
             background: var(--danger);
             color: white;
@@ -158,6 +149,109 @@
             border-radius: 22px;
             padding: 24px;
             margin-top: 20px;
+        }
+
+        .reveal-card {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(145deg, rgba(245, 158, 11, 0.16), rgba(39, 39, 45, 0.98));
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            border-radius: 24px;
+            padding: 28px;
+            margin-top: 20px;
+            box-shadow: 0 18px 60px rgba(245, 158, 11, 0.12);
+            animation: revealPop 0.55s ease both;
+        }
+
+        .reveal-card::before {
+            content: "";
+            position: absolute;
+            inset: -80px;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.22), transparent 55%);
+            opacity: 0.75;
+            animation: revealGlow 2.4s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+
+        .reveal-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .reveal-eyebrow {
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .reveal-role {
+            font-size: clamp(32px, 8vw, 54px);
+            font-weight: 950;
+            letter-spacing: -0.05em;
+            text-align: center;
+            margin-bottom: 18px;
+        }
+
+        .reveal-role.imposter {
+            color: var(--danger);
+        }
+
+        .reveal-role.normal {
+            color: var(--success);
+        }
+
+        .real-question-box {
+            background: rgba(17, 17, 20, 0.72);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 18px;
+            margin-top: 16px;
+        }
+
+        .real-question-label {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .real-question {
+            color: var(--text);
+            font-size: clamp(20px, 5vw, 30px);
+            font-weight: 850;
+            letter-spacing: -0.03em;
+            line-height: 1.15;
+            text-align: center;
+            overflow-wrap: anywhere;
+        }
+
+        @keyframes revealPop {
+            0% {
+                opacity: 0;
+                transform: translateY(18px) scale(0.96);
+                filter: blur(6px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+            }
+        }
+
+        @keyframes revealGlow {
+            0% {
+                transform: translateX(-16px) translateY(-10px) scale(1);
+            }
+            100% {
+                transform: translateX(16px) translateY(10px) scale(1.08);
+            }
         }
 
         .player-list, .answer-list {
@@ -225,14 +319,7 @@
             text-align: center;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-        }
-
-        .role.imposter {
-            color: var(--danger);
-        }
-
-        .role.normal {
-            color: var(--success);
+            color: var(--muted);
         }
 
         .question-label {
@@ -254,11 +341,20 @@
             margin-bottom: 20px;
         }
 
-        .small-text {
-            font-size: 14px;
+        .round-badge {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 16px;
+            border-radius: 999px;
+            background: #111114;
+            border: 1px solid var(--border);
             color: var(--muted);
-            margin-top: 12px;
-            margin-bottom: 0;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
         }
 
         .status-box {
@@ -276,10 +372,6 @@
             color: var(--success);
         }
 
-        .footer-actions {
-            margin-top: 20px;
-        }
-
         @media (max-width: 520px) {
             body {
                 padding: 14px;
@@ -293,11 +385,12 @@
         }
     </style>
 </head>
+
 <body>
     <main class="container">
         <section class="header">
             <h1>Imposter</h1>
-            <p>Der Host erstellt ein Spiel, teilt den Link und jeder Spieler sieht nur seine eigene Rolle und Frage.</p>
+            <p>Der Host erstellt ein Spiel, teilt den Link und jeder Spieler sieht nur seine eigene Frage.</p>
         </section>
 
         <section id="hostView">
@@ -325,11 +418,16 @@
             <p class="section-description">Gib exakt den Namen ein, den der Host für dich eingetragen hat.</p>
 
             <input id="playerNameInput" type="text" placeholder="Dein Spielername" autocomplete="off">
-            <button onclick="loadPlayerCard()">Karte laden</button>
+            <button id="loadCardButton" onclick="loadPlayerCard()">Karte laden</button>
 
             <div id="playerResult" class="card hidden">
-                <div id="roleText" class="role"></div>
+                <div style="text-align: center;">
+                    <div id="roundBadge" class="round-badge">Runde 1</div>
+                </div>
+
+                <div id="roleText" class="role">Rolle verborgen</div>
                 <h2 id="resultPlayerName"></h2>
+
                 <div class="question-label">Deine Frage</div>
                 <div class="question" id="resultQuestion"></div>
 
@@ -339,14 +437,30 @@
                 <div id="waitingStatus" class="status-box hidden"></div>
             </div>
 
+            <div id="revealArea" class="reveal-card hidden">
+                <div class="reveal-content">
+                    <div class="reveal-eyebrow">Reveal</div>
+                    <div id="revealRoleText" class="reveal-role"></div>
+
+                    <div class="real-question-box">
+                        <div class="real-question-label">Echte Frage</div>
+                        <div id="realQuestionText" class="real-question"></div>
+                    </div>
+                </div>
+            </div>
+
             <div id="answersArea" class="card hidden">
                 <h2>Antworten</h2>
                 <p class="section-description">Alle Antworten wurden abgegeben. Jetzt könnt ihr diskutieren.</p>
                 <div class="answer-list" id="answerList"></div>
+                <button id="readyNextRoundButton" onclick="markReadyForNextRound()">Ready für die nächste Frage</button>
+                <div id="readyStatus" class="status-box hidden"></div>
             </div>
 
-            <div class="footer-actions">
-                <button class="secondary-button" onclick="returnToHostStart()">Neues Spiel erstellen</button>
+            <div id="betweenRoundsArea" class="card hidden">
+                <h2>Warten auf die nächste Frage</h2>
+                <p class="section-description">Du bist ready. Sobald alle Spieler ready sind, startet automatisch die nächste Runde.</p>
+                <div id="betweenRoundsStatus" class="status-box"></div>
             </div>
         </section>
     </main>
@@ -363,6 +477,8 @@
         let currentPlayer = null;
         let allPlayers = [];
         let playerSubscription = null;
+        let gameSubscription = null;
+        let isStartingNextRound = false;
 
         function getQuestionPairs() {
             if (!window.IMPOSTER_QUESTIONS || !Array.isArray(window.IMPOSTER_QUESTIONS)) {
@@ -372,6 +488,27 @@
             return window.IMPOSTER_QUESTIONS.filter(pair => {
                 return pair && typeof pair.normal === "string" && typeof pair.imposter === "string";
             });
+        }
+
+        function getUsedQuestionIndexes(game) {
+            if (!game || !Array.isArray(game.used_question_indexes)) {
+                return [];
+            }
+
+            return game.used_question_indexes;
+        }
+
+        function pickUnusedQuestionIndex(usedIndexes) {
+            const questionPairs = getQuestionPairs();
+            const availableIndexes = questionPairs
+                .map((_, index) => index)
+                .filter(index => !usedIndexes.includes(index));
+
+            if (availableIndexes.length === 0) {
+                return null;
+            }
+
+            return availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
         }
 
         function createRoomCode() {
@@ -455,7 +592,8 @@
             createButton.disabled = true;
             createButton.innerText = "Spiel wird erstellt...";
 
-            const pair = questionPairs[Math.floor(Math.random() * questionPairs.length)];
+            const questionIndex = pickUnusedQuestionIndex([]);
+            const pair = questionPairs[questionIndex];
             const imposterIndex = Math.floor(Math.random() * hostPlayers.length);
             const roomCode = createRoomCode();
 
@@ -465,14 +603,17 @@
                     room_code: roomCode,
                     status: "answering",
                     normal_question: pair.normal,
-                    imposter_question: pair.imposter
+                    imposter_question: pair.imposter,
+                    current_question_index: questionIndex,
+                    used_question_indexes: [questionIndex],
+                    round_number: 1
                 })
                 .select()
                 .single();
 
             if (gameError) {
                 console.error(gameError);
-                alert("Spiel konnte nicht erstellt werden.");
+                alert("Spiel konnte nicht erstellt werden. Prüfe, ob der Supabase SQL-Patch ausgeführt wurde.");
                 createButton.disabled = false;
                 createButton.innerText = "Spiel-Link erstellen";
                 return;
@@ -482,7 +623,10 @@
                 return {
                     game_id: game.id,
                     name: player,
-                    is_imposter: index === imposterIndex
+                    is_imposter: index === imposterIndex,
+                    answer: null,
+                    has_submitted: false,
+                    ready_for_next_round: false
                 };
             });
 
@@ -493,7 +637,7 @@
 
             if (playersError) {
                 console.error(playersError);
-                alert("Spieler konnten nicht erstellt werden.");
+                alert("Spieler konnten nicht erstellt werden. Prüfe, ob der Supabase SQL-Patch ausgeführt wurde.");
                 createButton.disabled = false;
                 createButton.innerText = "Spiel-Link erstellen";
                 return;
@@ -513,7 +657,7 @@
             document.getElementById("shareArea").classList.remove("hidden");
 
             createButton.disabled = false;
-            createButton.innerText = "Neues Spiel-Link erstellen";
+            createButton.innerText = "Neuen Spiel-Link erstellen";
         }
 
         function copyGameLink() {
@@ -595,7 +739,6 @@
             }
 
             allPlayers = await loadPlayers(currentGame.id);
-
             currentPlayer = allPlayers.find(player => player.name.toLowerCase() === name.toLowerCase());
 
             if (!currentPlayer) {
@@ -603,30 +746,36 @@
                 return;
             }
 
+            document.getElementById("playerNameInput").disabled = true;
+            document.getElementById("loadCardButton").disabled = true;
+            document.getElementById("loadCardButton").innerText = "Karte geladen";
+
             renderPlayerCard();
             renderAnswerState();
+            subscribeToGameUpdates(currentGame.id);
             subscribeToPlayerUpdates(currentGame.id);
         }
 
         function renderPlayerCard() {
-            const roleText = document.getElementById("roleText");
-            roleText.classList.remove("imposter", "normal");
+            if (!currentGame || !currentPlayer) return;
+
+            document.getElementById("roleText").innerText = "Rolle verborgen";
 
             if (currentPlayer.is_imposter) {
-                roleText.innerText = "Imposter";
-                roleText.classList.add("imposter");
                 document.getElementById("resultQuestion").innerText = currentGame.imposter_question;
             } else {
-                roleText.innerText = "Crew";
-                roleText.classList.add("normal");
                 document.getElementById("resultQuestion").innerText = currentGame.normal_question;
             }
 
+            document.getElementById("roundBadge").innerText = `Runde ${currentGame.round_number || 1}`;
             document.getElementById("resultPlayerName").innerText = currentPlayer.name;
             document.getElementById("answerInput").value = currentPlayer.answer || "";
+            document.getElementById("answerInput").disabled = currentPlayer.has_submitted;
             document.getElementById("submitAnswerButton").disabled = currentPlayer.has_submitted;
             document.getElementById("submitAnswerButton").innerText = currentPlayer.has_submitted ? "Antwort abgegeben" : "Antwort abgeben";
             document.getElementById("playerResult").classList.remove("hidden");
+            document.getElementById("revealArea").classList.add("hidden");
+            document.getElementById("betweenRoundsArea").classList.add("hidden");
         }
 
         async function submitAnswer() {
@@ -659,8 +808,61 @@
             }
 
             currentPlayer = data;
+            document.getElementById("answerInput").disabled = true;
             document.getElementById("submitAnswerButton").disabled = true;
             document.getElementById("submitAnswerButton").innerText = "Antwort abgegeben";
+        }
+
+        async function markReadyForNextRound() {
+            if (!currentPlayer || !currentGame) return;
+
+            const { data, error } = await supabaseClient
+                .from("players")
+                .update({ ready_for_next_round: true })
+                .eq("id", currentPlayer.id)
+                .select()
+                .single();
+
+            if (error) {
+                console.error(error);
+                alert("Ready-Status konnte nicht gespeichert werden.");
+                return;
+            }
+
+            currentPlayer = data;
+            renderBetweenRoundsState();
+            await refreshPlayersAndMaybeStartNextRound();
+        }
+
+        function subscribeToGameUpdates(gameId) {
+            if (gameSubscription) {
+                supabaseClient.removeChannel(gameSubscription);
+            }
+
+            gameSubscription = supabaseClient
+                .channel(`game-${gameId}`)
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "UPDATE",
+                        schema: "public",
+                        table: "games",
+                        filter: `id=eq.${gameId}`
+                    },
+                    async payload => {
+                        const previousQuestionIndex = currentGame?.current_question_index;
+                        currentGame = payload.new;
+                        allPlayers = await loadPlayers(gameId);
+                        syncCurrentPlayer();
+
+                        if (previousQuestionIndex !== currentGame.current_question_index) {
+                            renderNewRound();
+                        } else {
+                            renderAnswerState();
+                        }
+                    }
+                )
+                .subscribe();
         }
 
         function subscribeToPlayerUpdates(gameId) {
@@ -679,37 +881,89 @@
                         filter: `game_id=eq.${gameId}`
                     },
                     async () => {
-                        allPlayers = await loadPlayers(gameId);
-                        const updatedCurrentPlayer = allPlayers.find(player => player.id === currentPlayer.id);
-
-                        if (updatedCurrentPlayer) {
-                            currentPlayer = updatedCurrentPlayer;
-                        }
-
-                        renderAnswerState();
+                        await refreshPlayersAndMaybeStartNextRound();
                     }
                 )
                 .subscribe();
         }
 
+        async function refreshPlayersAndMaybeStartNextRound() {
+            if (!currentGame) return;
+
+            allPlayers = await loadPlayers(currentGame.id);
+            syncCurrentPlayer();
+            renderAnswerState();
+
+            if (allPlayers.length > 0 && allPlayers.every(player => player.ready_for_next_round)) {
+                await startNextRoundIfNeeded();
+            }
+        }
+
+        function syncCurrentPlayer() {
+            if (!currentPlayer) return;
+
+            const updatedCurrentPlayer = allPlayers.find(player => player.id === currentPlayer.id);
+
+            if (updatedCurrentPlayer) {
+                currentPlayer = updatedCurrentPlayer;
+            }
+        }
+
         function renderAnswerState() {
-            if (!allPlayers || allPlayers.length === 0) return;
+            if (!allPlayers || allPlayers.length === 0 || !currentPlayer) return;
 
             const submittedCount = allPlayers.filter(player => player.has_submitted).length;
+            const readyCount = allPlayers.filter(player => player.ready_for_next_round).length;
             const totalCount = allPlayers.length;
             const allSubmitted = submittedCount === totalCount;
+            const allReady = readyCount === totalCount;
             const waitingStatus = document.getElementById("waitingStatus");
+            const readyStatus = document.getElementById("readyStatus");
 
             waitingStatus.classList.remove("hidden", "success");
+
+            if (currentPlayer.ready_for_next_round && allSubmitted && !allReady) {
+                renderBetweenRoundsState();
+                return;
+            }
 
             if (allSubmitted) {
                 waitingStatus.classList.add("success");
                 waitingStatus.innerText = "Alle Antworten sind abgegeben.";
+                renderRevealCard();
                 renderAnswers();
+
+                readyStatus.classList.remove("hidden", "success");
+                readyStatus.innerText = `${readyCount} von ${totalCount} Spielern sind ready für die nächste Frage.`;
+
+                if (currentPlayer.ready_for_next_round) {
+                    renderBetweenRoundsState();
+                }
             } else {
                 waitingStatus.innerText = `${submittedCount} von ${totalCount} Antworten abgegeben. Warte auf die anderen Spieler.`;
+                document.getElementById("revealArea").classList.add("hidden");
                 document.getElementById("answersArea").classList.add("hidden");
+                document.getElementById("betweenRoundsArea").classList.add("hidden");
             }
+        }
+
+        function renderRevealCard() {
+            if (!currentPlayer || !currentGame) return;
+
+            const revealRoleText = document.getElementById("revealRoleText");
+            revealRoleText.classList.remove("imposter", "normal");
+
+            if (currentPlayer.is_imposter) {
+                revealRoleText.innerText = "Du warst Imposter";
+                revealRoleText.classList.add("imposter");
+            } else {
+                revealRoleText.innerText = "Du warst Crew";
+                revealRoleText.classList.add("normal");
+            }
+
+            document.getElementById("roleText").innerText = "Rolle revealed";
+            document.getElementById("realQuestionText").innerText = currentGame.normal_question;
+            document.getElementById("revealArea").classList.remove("hidden");
         }
 
         function renderAnswers() {
@@ -732,6 +986,94 @@
             });
 
             document.getElementById("answersArea").classList.remove("hidden");
+            document.getElementById("betweenRoundsArea").classList.add("hidden");
+            document.getElementById("readyNextRoundButton").disabled = Boolean(currentPlayer?.ready_for_next_round);
+            document.getElementById("readyNextRoundButton").innerText = currentPlayer?.ready_for_next_round ? "Ready" : "Ready für die nächste Frage";
+        }
+
+        function renderBetweenRoundsState() {
+            const readyCount = allPlayers.filter(player => player.ready_for_next_round).length;
+            const totalCount = allPlayers.length;
+
+            document.getElementById("playerResult").classList.add("hidden");
+            document.getElementById("revealArea").classList.add("hidden");
+            document.getElementById("answersArea").classList.add("hidden");
+            document.getElementById("betweenRoundsArea").classList.remove("hidden");
+            document.getElementById("betweenRoundsStatus").innerText = `${readyCount} von ${totalCount} Spielern sind ready.`;
+        }
+
+        function renderNewRound() {
+            isStartingNextRound = false;
+            document.getElementById("playerResult").classList.remove("hidden");
+            document.getElementById("revealArea").classList.add("hidden");
+            document.getElementById("answersArea").classList.add("hidden");
+            document.getElementById("betweenRoundsArea").classList.add("hidden");
+            document.getElementById("waitingStatus").classList.add("hidden");
+            document.getElementById("readyStatus").classList.add("hidden");
+            document.getElementById("answerInput").disabled = false;
+            document.getElementById("submitAnswerButton").disabled = false;
+            document.getElementById("roleText").innerText = "Rolle verborgen";
+            renderPlayerCard();
+        }
+
+        async function startNextRoundIfNeeded() {
+            if (!currentGame || isStartingNextRound) return;
+
+            isStartingNextRound = true;
+
+            const usedIndexes = getUsedQuestionIndexes(currentGame);
+            const nextQuestionIndex = pickUnusedQuestionIndex(usedIndexes);
+
+            if (nextQuestionIndex === null) {
+                renderGameFinished();
+                isStartingNextRound = false;
+                return;
+            }
+
+            const questionPairs = getQuestionPairs();
+            const nextPair = questionPairs[nextQuestionIndex];
+            const nextImposterIndex = Math.floor(Math.random() * allPlayers.length);
+            const nextImposterPlayer = allPlayers[nextImposterIndex];
+
+            const { error: gameError } = await supabaseClient
+                .from("games")
+                .update({
+                    status: "answering",
+                    normal_question: nextPair.normal,
+                    imposter_question: nextPair.imposter,
+                    current_question_index: nextQuestionIndex,
+                    used_question_indexes: [...usedIndexes, nextQuestionIndex],
+                    round_number: (currentGame.round_number || 1) + 1,
+                    imposter_player_id: nextImposterPlayer.id
+                })
+                .eq("id", currentGame.id)
+                .eq("current_question_index", currentGame.current_question_index);
+
+            if (gameError) {
+                console.error(gameError);
+                isStartingNextRound = false;
+                return;
+            }
+
+            for (const player of allPlayers) {
+                await supabaseClient
+                    .from("players")
+                    .update({
+                        answer: null,
+                        has_submitted: false,
+                        ready_for_next_round: false,
+                        is_imposter: player.id === nextImposterPlayer.id
+                    })
+                    .eq("id", player.id);
+            }
+        }
+
+        function renderGameFinished() {
+            document.getElementById("playerResult").classList.add("hidden");
+            document.getElementById("revealArea").classList.add("hidden");
+            document.getElementById("answersArea").classList.add("hidden");
+            document.getElementById("betweenRoundsArea").classList.remove("hidden");
+            document.getElementById("betweenRoundsStatus").innerText = "Alle Fragen aus dem aktuellen Katalog wurden gespielt.";
         }
 
         function showHostView() {
@@ -742,10 +1084,6 @@
         function showPlayerView() {
             document.getElementById("hostView").classList.add("hidden");
             document.getElementById("playerView").classList.remove("hidden");
-        }
-
-        function returnToHostStart() {
-            window.location.href = window.location.origin + window.location.pathname;
         }
 
         document.getElementById("hostPlayerInput").addEventListener("keydown", event => {
