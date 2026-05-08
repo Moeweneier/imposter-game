@@ -25,7 +25,7 @@
 
         .container {
             width: 100%;
-            max-width: 600px;
+            max-width: 650px;
             background: #1e1e1e;
             border-radius: 24px;
             padding: 32px;
@@ -38,10 +38,16 @@
             text-align: center;
         }
 
+        h2 {
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
         p {
             text-align: center;
             color: #bbb;
             margin-bottom: 24px;
+            line-height: 1.4;
         }
 
         input {
@@ -66,14 +72,26 @@
             background: orange;
             color: black;
             transition: 0.2s;
+            margin-bottom: 12px;
         }
 
         button:hover {
             transform: scale(1.02);
         }
 
+        .secondary-button {
+            background: #333;
+            color: white;
+        }
+
+        .danger-button {
+            background: #ff4d4d;
+            color: white;
+        }
+
         .player-list {
-            margin-top: 24px;
+            margin-top: 16px;
+            margin-bottom: 20px;
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -83,8 +101,24 @@
             background: #2a2a2a;
             padding: 14px;
             border-radius: 12px;
-            text-align: center;
-            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .player span {
+            overflow-wrap: anywhere;
+        }
+
+        .remove-player {
+            width: auto;
+            margin: 0;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #444;
+            color: white;
         }
 
         .hidden {
@@ -100,40 +134,111 @@
         }
 
         .question {
-            font-size: 28px;
+            font-size: 30px;
             font-weight: bold;
             margin-top: 16px;
             color: orange;
+            overflow-wrap: anywhere;
+        }
+
+        .role {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .role.imposter {
+            color: #ff4d4d;
+        }
+
+        .role.normal {
+            color: #5dff8b;
+        }
+
+        .small-text {
+            font-size: 14px;
+            color: #999;
+            margin-top: 12px;
+            margin-bottom: 0;
+        }
+
+        .link-box {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            background: #111;
+            color: orange;
+            font-size: 14px;
+            overflow-wrap: anywhere;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .divider {
+            height: 1px;
+            width: 100%;
+            background: #333;
+            margin: 24px 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🕵️ Imposter</h1>
-        <p>Alle bekommen dieselbe Frage — außer einer Person.</p>
+        <p>Der Host erstellt das Spiel. Alle anderen öffnen den Link, geben ihren Namen ein und sehen nur ihre eigene Frage.</p>
 
-        <input id="playerInput" type="text" placeholder="Spielername eingeben">
-
-        <button onclick="addPlayer()">Spieler hinzufügen</button>
-
-        <div class="player-list" id="playerList"></div>
-
-        <div style="margin-top: 24px;">
-            <button onclick="startGame()">Spiel starten</button>
+        <div id="modeSelection">
+            <button onclick="showPlayerView()">Ich bin Spieler</button>
+            <button class="secondary-button" onclick="showHostLogin()">Ich bin Host</button>
         </div>
 
-        <div class="card hidden" id="questionCard">
-            <h2 id="playerName"></h2>
-            <div class="question" id="questionText"></div>
+        <div id="hostLogin" class="hidden">
+            <h2>Host Login</h2>
+            <input id="hostPasswordInput" type="password" placeholder="Host-Passwort">
+            <button onclick="loginHost()">Als Host einloggen</button>
+            <button class="secondary-button" onclick="showModeSelection()">Zurück</button>
+            <p class="small-text">Test-Passwort: <strong>host123</strong></p>
+        </div>
 
-            <div style="margin-top: 20px;">
-                <button onclick="nextPlayer()">Nächster Spieler</button>
+        <div id="hostView" class="hidden">
+            <h2>Host Bereich</h2>
+            <p>Lege fest, welche Spieler mitmachen. Danach erzeugst du einen Link für alle.</p>
+
+            <input id="hostPlayerInput" type="text" placeholder="Spielername eingeben">
+            <button onclick="addHostPlayer()">Spieler hinzufügen</button>
+
+            <div class="player-list" id="hostPlayerList"></div>
+
+            <button onclick="createGameLink()">Spiel erstellen</button>
+            <button class="danger-button" onclick="resetHostGame()">Spiel zurücksetzen</button>
+
+            <div id="shareArea" class="card hidden">
+                <h2>Spiel-Link</h2>
+                <p>Schick diesen Link an alle Spieler:</p>
+                <div class="link-box" id="shareLink"></div>
+                <button onclick="copyGameLink()">Link kopieren</button>
+            </div>
+        </div>
+
+        <div id="playerView" class="hidden">
+            <h2>Spieler Bereich</h2>
+            <p>Gib exakt den Namen ein, den der Host eingetragen hat.</p>
+
+            <input id="playerNameInput" type="text" placeholder="Dein Spielername">
+            <button onclick="showMyQuestion()">Meine Frage anzeigen</button>
+            <button class="secondary-button" onclick="showModeSelection()">Zurück</button>
+
+            <div id="playerResult" class="card hidden">
+                <div id="roleText" class="role"></div>
+                <h2 id="resultPlayerName"></h2>
+                <div class="question" id="resultQuestion"></div>
+                <p class="small-text">Sag deine Antwort laut und verteidige sie. Nicht den Inhalt dieser Karte zeigen.</p>
             </div>
         </div>
     </div>
 
     <script>
-        const players = [];
+        const HOST_PASSWORD = "host123";
 
         const questionPairs = [
             {
@@ -155,77 +260,218 @@
             {
                 normal: "Ferrari",
                 imposter: "Lamborghini"
+            },
+            {
+                normal: "Strandurlaub",
+                imposter: "Skiurlaub"
+            },
+            {
+                normal: "Netflix",
+                imposter: "YouTube"
+            },
+            {
+                normal: "Kaffee",
+                imposter: "Energy Drink"
             }
         ];
 
-        let gameQuestions = [];
-        let currentPlayerIndex = 0;
+        const hostPlayers = [];
+        let currentGameLink = "";
 
-        function addPlayer() {
-            const input = document.getElementById("playerInput");
+        function showModeSelection() {
+            hideAllSections();
+            document.getElementById("modeSelection").classList.remove("hidden");
+        }
+
+        function showHostLogin() {
+            hideAllSections();
+            document.getElementById("hostLogin").classList.remove("hidden");
+        }
+
+        function showHostView() {
+            hideAllSections();
+            document.getElementById("hostView").classList.remove("hidden");
+        }
+
+        function showPlayerView() {
+            hideAllSections();
+            document.getElementById("playerView").classList.remove("hidden");
+        }
+
+        function hideAllSections() {
+            document.getElementById("modeSelection").classList.add("hidden");
+            document.getElementById("hostLogin").classList.add("hidden");
+            document.getElementById("hostView").classList.add("hidden");
+            document.getElementById("playerView").classList.add("hidden");
+        }
+
+        function loginHost() {
+            const password = document.getElementById("hostPasswordInput").value;
+
+            if (password !== HOST_PASSWORD) {
+                alert("Falsches Host-Passwort.");
+                return;
+            }
+
+            document.getElementById("hostPasswordInput").value = "";
+            showHostView();
+        }
+
+        function addHostPlayer() {
+            const input = document.getElementById("hostPlayerInput");
             const name = input.value.trim();
 
             if (!name) return;
 
-            players.push(name);
-            input.value = "";
+            const alreadyExists = hostPlayers.some(player => player.toLowerCase() === name.toLowerCase());
 
-            renderPlayers();
+            if (alreadyExists) {
+                alert("Dieser Spielername existiert bereits.");
+                return;
+            }
+
+            hostPlayers.push(name);
+            input.value = "";
+            renderHostPlayers();
         }
 
-        function renderPlayers() {
-            const playerList = document.getElementById("playerList");
-            playerList.innerHTML = "";
+        function removeHostPlayer(index) {
+            hostPlayers.splice(index, 1);
+            renderHostPlayers();
+        }
 
-            players.forEach(player => {
+        function renderHostPlayers() {
+            const list = document.getElementById("hostPlayerList");
+            list.innerHTML = "";
+
+            if (hostPlayers.length === 0) {
+                const emptyText = document.createElement("p");
+                emptyText.className = "small-text";
+                emptyText.innerText = "Noch keine Spieler hinzugefügt.";
+                list.appendChild(emptyText);
+                return;
+            }
+
+            hostPlayers.forEach((player, index) => {
                 const div = document.createElement("div");
                 div.className = "player";
-                div.innerText = player;
-                playerList.appendChild(div);
+
+                const span = document.createElement("span");
+                span.innerText = player;
+
+                const removeButton = document.createElement("button");
+                removeButton.className = "remove-player";
+                removeButton.innerText = "Entfernen";
+                removeButton.onclick = () => removeHostPlayer(index);
+
+                div.appendChild(span);
+                div.appendChild(removeButton);
+                list.appendChild(div);
             });
         }
 
-        function startGame() {
-            if (players.length < 3) {
+        function createGameLink() {
+            if (hostPlayers.length < 3) {
                 alert("Mindestens 3 Spieler benötigt.");
                 return;
             }
 
             const pair = questionPairs[Math.floor(Math.random() * questionPairs.length)];
+            const imposterIndex = Math.floor(Math.random() * hostPlayers.length);
 
-            const imposterIndex = Math.floor(Math.random() * players.length);
-
-            gameQuestions = players.map((player, index) => {
+            const assignments = hostPlayers.map((player, index) => {
                 return {
                     name: player,
-                    question: index === imposterIndex ? pair.imposter : pair.normal
+                    question: index === imposterIndex ? pair.imposter : pair.normal,
+                    isImposter: index === imposterIndex
                 };
             });
 
-            currentPlayerIndex = 0;
+            const gameData = {
+                createdAt: Date.now(),
+                assignments: assignments
+            };
 
-            showPlayerQuestion();
+            const encodedGameData = btoa(unescape(encodeURIComponent(JSON.stringify(gameData))));
+            currentGameLink = `${window.location.origin}${window.location.pathname}#game=${encodedGameData}`;
+
+            document.getElementById("shareLink").innerText = currentGameLink;
+            document.getElementById("shareArea").classList.remove("hidden");
         }
 
-        function showPlayerQuestion() {
-            const player = gameQuestions[currentPlayerIndex];
+        function copyGameLink() {
+            if (!currentGameLink) return;
 
-            document.getElementById("questionCard").classList.remove("hidden");
-            document.getElementById("playerName").innerText = player.name;
-            document.getElementById("questionText").innerText = player.question;
+            navigator.clipboard.writeText(currentGameLink).then(() => {
+                alert("Link kopiert.");
+            }).catch(() => {
+                alert("Kopieren fehlgeschlagen. Link bitte manuell kopieren.");
+            });
         }
 
-        function nextPlayer() {
-            currentPlayerIndex++;
+        function resetHostGame() {
+            hostPlayers.length = 0;
+            currentGameLink = "";
+            document.getElementById("shareLink").innerText = "";
+            document.getElementById("shareArea").classList.add("hidden");
+            renderHostPlayers();
+        }
 
-            if (currentPlayerIndex >= gameQuestions.length) {
-                alert("Alle Spieler haben ihre Frage gesehen. Diskussion starten 😈");
+        function getGameDataFromUrl() {
+            const hash = window.location.hash;
 
-                document.getElementById("questionCard").classList.add("hidden");
+            if (!hash.startsWith("#game=")) {
+                return null;
+            }
+
+            const encodedGameData = hash.replace("#game=", "");
+
+            try {
+                return JSON.parse(decodeURIComponent(escape(atob(encodedGameData))));
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function showMyQuestion() {
+            const gameData = getGameDataFromUrl();
+
+            if (!gameData) {
+                alert("Kein Spiel gefunden. Öffne den Link, den der Host erstellt hat.");
                 return;
             }
 
-            showPlayerQuestion();
+            const name = document.getElementById("playerNameInput").value.trim();
+
+            if (!name) return;
+
+            const assignment = gameData.assignments.find(player => player.name.toLowerCase() === name.toLowerCase());
+
+            if (!assignment) {
+                alert("Dieser Name ist nicht im Spiel. Prüfe die Schreibweise.");
+                return;
+            }
+
+            const roleText = document.getElementById("roleText");
+            roleText.classList.remove("imposter", "normal");
+
+            if (assignment.isImposter) {
+                roleText.innerText = "Du bist der Imposter";
+                roleText.classList.add("imposter");
+            } else {
+                roleText.innerText = "Du bist kein Imposter";
+                roleText.classList.add("normal");
+            }
+
+            document.getElementById("resultPlayerName").innerText = assignment.name;
+            document.getElementById("resultQuestion").innerText = assignment.question;
+            document.getElementById("playerResult").classList.remove("hidden");
+        }
+
+        renderHostPlayers();
+
+        if (getGameDataFromUrl()) {
+            showPlayerView();
         }
     </script>
 </body>
